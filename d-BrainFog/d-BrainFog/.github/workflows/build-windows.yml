@@ -1,0 +1,33 @@
+name: Build d-BrainFog (Windows x64 VST3)
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Preparar entorno de Visual Studio
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Pruebas del motor DSP
+        shell: cmd
+        run: |
+          cl /nologo /std:c++17 /O2 /EHsc /W3 tests\dsp_test.cpp /Fe:dbf_dsp_test.exe
+          dbf_dsp_test.exe
+
+      - name: Configurar (descarga JUCE 8.0.4)
+        run: cmake -S . -B build -A x64 -DCMAKE_BUILD_TYPE=Release
+
+      - name: Compilar VST3
+        run: cmake --build build --config Release --target dBrainFog_VST3 --parallel
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: d-BrainFog-vst3-win64
+          path: build/dBrainFog_artefacts/Release/VST3/d-BrainFog.vst3
